@@ -1,92 +1,52 @@
-import React, { useState } from "react";
+import { Form, useActionData, redirect } from "react-router-dom";
 
-function Contact() {
-  // State to store form data
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: ""
-  });
+export async function action({ request }) {
+  const formData = await request.formData();
+  const name = String(formData.get("name") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  const message = String(formData.get("message") || "").trim();
 
-  // State to track form submission
-  const [submitted, setSubmitted] = useState(false);
+  const errors = {};
+  if (!name) errors.name = "Name is required";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Provide a valid email";
+  if (message.length < 10) errors.message = "Message must be ≥ 10 chars";
 
-  // Handle input changes dynamically
-  const handleChange = (e) => {
-    const { name, value } = e.target;   // extract field name and value
-    setFormData({
-      ...formData,
-      [name]: value   // update only the changed field
-    });
-  };
+  if (Object.keys(errors).length) {
+    return errors; // useActionData() receives this
+  }
 
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();  // prevent page reload
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
+  // pretend to “send” and then redirect with a flash message query param
+  return redirect("/contact?submitted=1");
+}
 
-    // Reset form after submission
-    setFormData({ name: "", email: "", message: "" });
-  };
+export default function Contact() {
+  const errors = useActionData();
 
   return (
     <div>
-      <h2>Contact Us</h2>
-      {!submitted ? (
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label>
-            Name:
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+      <h2>Contact</h2>
+      <Form method="post" replace>
+        <div>
+          <label>Name<br />
+            <input name="name" placeholder="Your name" />
           </label>
-
-          <label>
-            Email:
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+          {errors?.name && <p style={{color:"crimson"}}>{errors.name}</p>}
+        </div>
+        <div>
+          <label>Email<br />
+            <input name="email" type="email" placeholder="you@work.com" />
           </label>
-
-          <label>
-            Message:
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              required
-            />
+          {errors?.email && <p style={{color:"crimson"}}>{errors.email}</p>}
+        </div>
+        <div>
+          <label>Message<br />
+            <textarea name="message" rows="4" placeholder="How can we help?" />
           </label>
-
-          <button type="submit">Submit</button>
-        </form>
-      ) : (
-        <p style={{ color: "green" }}>
-          ✅ Thank you for contacting us! We’ll get back to you soon.
-        </p>
-      )}
+          {errors?.message && <p style={{color:"crimson"}}>{errors.message}</p>}
+        </div>
+        <button type="submit">Send</button>
+      </Form>
     </div>
   );
 }
-
-const styles = {
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    maxWidth: "400px",
-    marginTop: "20px"
-  }
-};
-
-export default Contact;
 
